@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+streamlit
+requests
+passlib[bcrypt]
+python-dotenv
+pydantic
+bcrypt
