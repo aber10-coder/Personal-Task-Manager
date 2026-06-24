@@ -198,3 +198,117 @@ def update_task(
     conn.close()
 
     return dict(task)
+
+def update_task_status(
+    task_id,
+    status
+):
+    conn = get_connection()
+
+    conn.execute(
+        """
+        UPDATE tasks
+        SET status=?
+        WHERE id=?
+        """,
+        (
+            status,
+            task_id
+        )
+    )
+
+    conn.commit()
+
+    task = conn.execute(
+        """
+        SELECT * FROM tasks
+        WHERE id=?
+        """,
+        (task_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return dict(task)
+
+def get_filtered_tasks(
+    owner_email,
+    status=None,
+    priority=None
+):
+    conn = get_connection()
+
+    query = """
+        SELECT * FROM tasks
+        WHERE owner_email=?
+    """
+
+    params = [owner_email]
+
+    if status:
+        query += " AND status=?"
+        params.append(status)
+
+    if priority:
+        query += " AND priority=?"
+        params.append(priority)
+
+    tasks = conn.execute(
+        query,
+        tuple(params)
+    ).fetchall()
+
+    conn.close()
+
+    return [dict(task) for task in tasks]
+
+def get_task_summary(owner_email):
+    conn = get_connection()
+
+    total = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE owner_email=?
+        """,
+        (owner_email,)
+    ).fetchone()[0]
+
+    pending = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE owner_email=?
+        AND status='pending'
+        """,
+        (owner_email,)
+    ).fetchone()[0]
+
+    in_progress = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE owner_email=?
+        AND status='in_progress'
+        """,
+        (owner_email,)
+    ).fetchone()[0]
+
+    done = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE owner_email=?
+        AND status='done'
+        """,
+        (owner_email,)
+    ).fetchone()[0]
+
+    conn.close()
+
+    return {
+        "total": total,
+        "pending": pending,
+        "in_progress": in_progress,
+        "done": done
+    }

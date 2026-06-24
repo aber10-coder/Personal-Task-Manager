@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,Query
 
 from auth import get_current_user
 
@@ -7,10 +7,14 @@ from db import (
     get_tasks_by_owner,
     get_task_by_id,
     delete_task,
-    update_task
+    update_task,
+    update_task_status,
+    get_filtered_tasks,
+    get_task_summary
+    
 )
 
-from schemas import TaskCreate,TaskUpdate
+from schemas import TaskCreate,TaskUpdate,TaskStatusUpdate
 
 
 router = APIRouter(
@@ -36,12 +40,27 @@ def add_task(
 
 @router.get("/")
 def get_tasks(
-    current_user=Depends(get_current_user)
+    status: str | None = Query(None),
+    priority: str | None = Query(None),
+    current_user=Depends(
+        get_current_user
+    )
 ):
-    return get_tasks_by_owner(
-        current_user
+    return get_filtered_tasks(
+        current_user,
+        status,
+        priority
     )
 
+@router.get("/summary")
+def task_summary(
+    current_user=Depends(
+        get_current_user
+    )
+):
+    return get_task_summary(
+        current_user
+    )
 
 @router.get("/{task_id}")
 def get_task(
@@ -120,3 +139,33 @@ def edit_task(
         task.status,
         task.due_date
     )
+
+@router.patch("/{task_id}/status")
+def change_status(
+    task_id: int,
+    status_data: TaskStatusUpdate,
+    current_user=Depends(
+        get_current_user
+    )
+):
+    task = get_task_by_id(
+        task_id
+    )
+
+    if task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    if task["owner_email"] != current_user:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden"
+        )
+
+    return update_task_status(
+        task_id,
+        status_data.status
+    )
+

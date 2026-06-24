@@ -43,3 +43,6 @@ class TaskResponse(BaseModel):
     status: str
     due_date: str
     owner_email: str
+
+class TaskStatusUpdate(BaseModel):
+    status: str
